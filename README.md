@@ -1,292 +1,559 @@
+# 🍽️ Forecasting School Meal Production Costs: A Comparative Study of Machine Learning and Deep Learning Time-Series Models
 
-# Capstone Proposal
-## Smart School Food Service Analytics: AI-Driven Demand Forecasting and Waste Reduction using Fairfax County Public Schools Data
-### Proposed by: Dr. Amir Jafari
-#### Email: ajafari@gwu.edu
-#### Advisor: Amir Jafari
-#### The George Washington University, Washington DC  
-#### Data Science Program
+This project develops a time-series forecasting system for Fairfax County Public Schools (FCPS) to estimate daily meal production costs and analyze waste-related patterns. It compares multiple machine learning and deep learning models-including LSTM, GRU, XGBoost, Linear Regression, and Feed-Forward Neural Networks and visualizes the results through an interactive Streamlit dashboard.
 
+The goal is simple:
+👉 Reduce food waste, improve planning, and optimize meal production costs across the district.
 
-## 1 Objective:  
- 
-            This project aims to develop and validate an intelligent school food service analytics system using comprehensive data
-             from Fairfax County Public Schools (FCPS) that combines Point-of-Sale (POS) data with Production Records to create 
-             advanced forecasting and optimization models. The research focuses on developing novel machine learning algorithms that:
-             
+# 🏷️ Badges  
 
-            1. **Predict daily food demand accurately** using historical POS data, student demographics, seasonal patterns,and external factors (weather, events, holidays)
-            2. **Optimize food production quantities** to minimize waste while ensuring adequate food availability across different meal programs (breakfast, lunch)
-            3. **Classify student food preferences and dietary patterns** using clustering and classification techniques on selection data
-            4. **Forecast leftover quantities** for different food categories (proteins, vegetables, grains) to improve procurement planning
-            5. **Develop nutritional optimization models** that balance caloric requirements, nutritional guidelines, and student preferences
-            6. **Create cost-effectiveness analysis** frameworks that optimize budget allocation across different meal programs and schools
-            7. **Build early warning systems** for potential food shortages or excessive waste based on predictive analytics
+<p align="left">
+  <img src="https://img.shields.io/badge/Python-3.10-blue?style=for-the-badge&logo=python"/>
+  
+  <img src="https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C?style=for-the-badge&logo=pytorch"/>
+  
+  <img src="https://img.shields.io/badge/XGBoost-Gradient%20Boosting-orange?style=for-the-badge&logo=xgboost"/>
+  
+  <img src="https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit"/>
+  
+  <img src="https://img.shields.io/badge/Pandas-Data%20Analysis-150458?style=for-the-badge&logo=pandas"/>
+  
+  <img src="https://img.shields.io/badge/Numpy-Scientific%20Computing-013243?style=for-the-badge&logo=numpy"/>
+  
+  <img src="https://img.shields.io/badge/BeautifulSoup-HTML%20Parsing-195E0?style=for-the-badge"/>
+  
+  <img src="https://img.shields.io/badge/Matplotlib-Visualization-11557C?style=for-the-badge&logo=matplotlib"/>
+  
+  <img src="https://img.shields.io/badge/Scikit--Learn-ML%20Models-F7931E?style=for-the-badge&logo=scikitlearn"/>
+  
+  <img src="https://img.shields.io/badge/GitHub-Version%20Control-181717?style=for-the-badge&logo=github"/>
+  
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge"/>
+</p>
 
-            The research contributes novel time-series forecasting algorithms specifically designed for institutional food service
-             operations and provides practical optimization frameworks that can significantly reduce food waste, improve nutritional 
-             outcomes, and optimize operational costs. This work targets publication in top-tier venues such as Operations Research 
-             journals, Food Policy, Applied Economics, or specialized food service management journals.
-            
+---
 
-![Figure 1: Example figure](2025_Fall_2.png)
-*Figure 1: Caption*
+## 📋 Table of Contents
 
-## 2 Dataset:  
+- [Overview](#overview)  
+- [Dataset Workflow](#dataset-workflow)  
+- [Key Features](#key-features)  
+- [System Architecture](#system-architecture)  
+- [Model Pipeline](#model-pipeline)  
+- [Getting Started](#getting-started)  
+    - [Prerequisites](#prerequisites)  
+    - [Installation](#installation)  
+    - [Environment Setup](#environment-setup)  
+    - [Running the Models](#running-the-models)  
+- [Dashboard (Streamlit App)](#dashboard-streamlit-app)  
+- [API Endpoints](#api-endpoints)  
+- [Troubleshooting](#troubleshooting)  
+- [Research & Performance](#research--performance)  
+- [Technology Stack](#technology-stack)  
+- [Contributing](#contributing)  
+- [License](#license)  
+- [Acknowledgments](#acknowledgments)
 
-            The project leverages comprehensive, real-world school food service data from Fairfax County Public Schools with multiple
-             interconnected data sources:
+---
 
-            **Primary FCPS Datasets (Available in GitHub Repository:
-             https://github.com/amir-jafari/Public_Research/tree/main/Fairfax_County):**
+# 🔄 Dataset Workflow
 
-            1. **Point-of-Sale (POS) Data** (~100,000 records for breakfast and lunch):
-               - Student meal selections with timestamps and meal types
-               - Cashier recording system with simplified item coding (e.g., single button for pizza)
-               - Daily transaction records across multiple schools and meal periods
-               - Student demographic linkage for preference analysis
-               - Cash register system data with meal component selections
+Our pipeline transforms raw FCPS Production Records + POS data → **clean, structured forecasting dataset**.
 
-            2. **Production Record Data** (Daily production and leftover tracking):
-               - Kitchen preparation quantities for each food item and meal component
-               - Leftover quantities by food category (proteins like chicken, carbohydrates like nachos, vegetables like carrots and broccoli)
-               - Production planning data showing planned vs. actual preparation amounts
-               - Food waste measurements and disposal tracking
-               - Recipe scaling information and portion size data
+---
 
-            3. **Menu Planning Data**:
-               - Cyclical menu patterns and seasonal variations
-               - Nutritional content analysis for each meal component
-               - Cost per serving and ingredient pricing information
-               - Federal nutrition program compliance data (calories, nutrients, food groups)
+### **1️⃣ HTML → CSV Parser**
 
-            4. **School-Level Demographic Data**:
-               - Student enrollment numbers and demographic breakdown
-               - Free and reduced lunch eligibility percentages
-               - School-specific attendance patterns and seasonal variations
-               - Geographic and socioeconomic indicators
+✔ Reads dozens of messy FCPS breakfast & lunch HTML files  
+✔ Auto-detects school sections  
+✔ Extracts production, leftover, planned, served, discarded values  
+✔ Cleans currencies, percentages, and item names  
+✔ Standardizes headers  
 
-            **Supplementary Datasets for Model Enhancement:**
+**Outputs generated:**
 
-            5. **External Factor Data**:
-               - Weather data (temperature, precipitation) for demand pattern analysis
-               - School calendar information (holidays, events, testing periods)
-               - Local food pricing and commodity cost fluctuations
+- `src/Data/Output/breakfast_combined.csv`  
+- `src/Data/Output/lunch_combined.csv`  
+- `src/Data/Output/meals_combined.csv` 
 
-            6. **Benchmark Datasets from Literature**:
-               - Institutional food service forecasting datasets for model comparison
-               - USDA school meal program data for national benchmarking
-               - Food waste reduction case studies from other school districts
+---
 
-            **Data Processing and Integration Framework:**
-            - PDF report parsing and database format integration
-            - Multi-level data aggregation (meal level, school level, district level)
-            - Time-series data preparation with multiple temporal granularities (daily, weekly, seasonal)
-            - Missing data imputation and data quality assessment protocols
-            
+### **2️⃣ Data Cleaning & Preprocessing **
 
-## 3 Rationale:  
+✔ Cleans `$` & `%` → float  
+✔ Converts & sorts dates  
+✔ Handles missing values  
+✔ Outlier removal using 99th percentile  
+✔ Encodes meal types  
+✔ Produces final ML-ready dataset for:
 
-            School food service operations face significant challenges in balancing nutritional requirements, cost control, and waste 
-            reduction. The USDA estimates that school districts waste approximately 530,000 tons of food annually, representing
-             $1.2 billion in economic losses. Current school food service management relies heavily on manual forecasting 
-             and experience-based decision making, leading to several critical research gaps:
+- Univariate Forecasting  
+- Multivariate Forecasting  
+- Streamlit Dashboard  
 
-            **Research Gap 1: Limited Predictive Analytics in School Food Service**
-            Existing school food service systems lack sophisticated demand forecasting capabilities that integrate multiple data 
-            sources (POS, production, demographics, external factors). Most districts rely on basic historical averages without
-             considering complex seasonal patterns, student preferences, or external influences.
+---
 
-            **Research Gap 2: Insufficient Integration of POS and Production Data**
-            Current research rarely combines real-time student selection data (POS) with kitchen production records to create 
-            comprehensive optimization models. This integration is crucial for understanding the complete food service pipeline 
-            from preparation to consumption.
+### ⭐ **Final Dataset Columns**
 
-            **Research Gap 3: Lack of Multi-Objective Optimization for School Meals**
-            Existing approaches focus on single objectives (cost or waste reduction) without considering the complex trade-offs
-             between nutritional requirements, student satisfaction, operational costs, and regulatory compliance.
+| Column | Description |
+|--------|-------------|
+| school_name | FCPS school |
+| meal_type | breakfast/lunch |
+| date | daily record |
+| served_total | meals served |
+| planned_total | planned meals |
+| discarded_total | wasted meals |
+| left_over_total | leftover meals |
+| production_cost_total | $$ spent per item-day |
 
-            **Research Gap 4: Limited Application of Advanced ML Techniques in Food Service**
-            While machine learning has been applied to commercial food service forecasting, there's insufficient research on
-             specialized algorithms for institutional settings with unique constraints (federal nutrition standards, 
-             budget limitations, educational schedules).
+---
 
-            **Research Gap 5: Absence of Real-Time Decision Support Systems**
-            Current food service management lacks intelligent systems that can provide real-time recommendations for production 
-            adjustments, menu modifications, or resource allocation based on dynamic conditions.
+# 🎯 Key Features
 
-            This research addresses these gaps by developing novel machine learning algorithms specifically designed for school 
-            food service optimization, contributing to both operations research and food systems management. The work has strong 
-            potential for high-impact publication in multiple domains:
+### 🍽️ **1. Meal Demand Forecasting**
+- LSTM & GRU deep learning models  
+- Univariate forecasting (district-level daily time-series)  
+- Multivariate forecasting (served/planned/discarded/leftovers → cost)  
 
-            **Target Publication Venues:**
-            - **Operations Research** (Impact Factor: 2.7) - Leading venue for optimization and forecasting research
-            - **Food Policy** (Impact Factor: 6.1) - Premier journal for food systems research
-            - **International Journal of Production Economics** (Impact Factor: 11.2) - Top operations management venue
-            - **Applied Economics** (Impact Factor: 2.4) - Economics applications in food systems
-            - **Journal of Foodservice Management & Education** - Specialized venue for food service research
-            - **Computers & Operations Research** (Impact Factor: 4.6) - Computational approaches to operations
-            
+---
 
-## 4 Approach:  
+### ♻️ **2. Waste Optimization**
+- Predict discarded + leftover quantities  
+- Waste ratio analytics  
+- Identify high-waste menu items  
 
-            **Research Methodology**: Mixed-methods approach combining advanced machine learning model development, optimization
-             algorithms, and comprehensive empirical validation using real-world school food service data
+---
 
-            **Phase 1: Data Integration and Exploratory Analysis (Weeks 1-2)**
-            - Comprehensive data preprocessing and integration of POS, production, and demographic datasets
-            - Exploratory data analysis to identify patterns, seasonality, and anomalies in food demand and waste
-            - Development of data quality assessment protocols and missing data imputation strategies
-            - Creation of standardized data integration pipeline for multi-source school food service data
+### 💲 **3. Cost Forecasting**
+- Predict production cost for next 10 days  
+- Scenario modeling using “What-If” adjustments  
 
-            **Phase 2: Advanced Forecasting Model Development (Weeks 3-8)**
-            - **Demand Forecasting Models** (Weeks 3-4):
-              * Time-series forecasting using LSTM, ARIMA, and Prophet models for daily meal demand prediction
-              * Integration of external factors (weather, events, demographics) using multivariate regression and ensemble methods
-              * Development of hierarchical forecasting models for different aggregation levels (meal, school, district)
-              * Student preference classification using clustering algorithms (K-means, hierarchical clustering) on POS data
+---
 
-            - **Production Optimization Algorithms** (Weeks 5-6):
-              * Multi-objective optimization models balancing waste reduction, cost minimization, and nutritional requirements
-              * Leftover prediction models using regression trees and neural networks based on production-consumption patterns
-              * Recipe scaling optimization using linear programming and constraint satisfaction techniques
-              * Dynamic menu planning algorithms that adapt to seasonal availability and student preferences
+### 📊 **4. Interactive Streamlit Dashboard**
+- School-wise filtering  
+- Cost trends  
+- Waste ratio analysis  
+- What-if ML predictions  
+- Benchmark model comparison  
 
-            - **Cost-Effectiveness Analysis Framework** (Weeks 7-8):
-              * Economic modeling of food service operations using cost-benefit analysis and ROI calculations
-              * Budget allocation optimization across different meal programs and nutritional components
-              * Procurement planning models that minimize costs while meeting nutritional and quality standards
-              * Scenario analysis for different operational strategies and policy changes
+---
 
-            **Phase 3: Integrated Decision Support System Development (Weeks 9-11)**
-            - Development of comprehensive analytics dashboard integrating all developed models
-            - Real-time alert system for potential shortages, overproduction, or budget overruns
-            - Interactive visualization tools for food service managers and administrators
-            - Integration of nutritional compliance monitoring with USDA meal pattern requirements
-            - Mobile-friendly interface for kitchen staff and food service directors
+### 🧠 **5. Machine Learning Benchmarking**
+- Linear Regression  
+- XGBoost  
+- Feed-Forward Neural Network  
+- GRU & LSTM  
 
-            **Phase 4: Model Validation and Performance Evaluation (Weeks 12-14)**
-            - Comprehensive evaluation using historical FCPS data with train-validation-test splits
-            - Cross-validation across different schools and time periods to ensure model generalizability
-            - Performance comparison with existing forecasting methods and industry benchmarks
-            - Statistical analysis of improvement in waste reduction, cost savings, and nutritional outcomes
-            - Sensitivity analysis and robustness testing under different operational scenarios
+---
 
-            **Phase 5: Research Publication and System Documentation (Weeks 15-16)**
-            - Preparation of research manuscript for submission to target journal (Operations Research, Food Policy, or IJPE)
-            - Development of comprehensive technical documentation and implementation guides
-            - Creation of policy recommendations for school district food service management
-            - Preparation of presentation materials for academic conferences and industry forums
-            - Development of open-source toolkit for other school districts to implement similar systems
-            
+# 🏗️ System Architecture
 
-## 5 Timeline:  
-
-            **Week 1**: Data integration, preprocessing, and comprehensive exploratory data analysis of FCPS datasets
-            **Week 2**: Data quality assessment, missing data imputation, and baseline forecasting model establishment
-            **Weeks 3-4**: Time-series demand forecasting model development (LSTM, ARIMA, Prophet) and external factor integration
-            **Weeks 5-6**: Production optimization algorithms and leftover prediction model development
-            **Weeks 7-8**: Cost-effectiveness analysis framework and budget allocation optimization models
-            **Week 9**: Integrated decision support system architecture design and dashboard development
-            **Week 10**: Real-time alert system implementation and nutritional compliance monitoring integration
-            **Week 11**: User interface development and mobile-friendly system optimization
-            **Week 12**: Comprehensive model validation using historical data and cross-validation across schools
-            **Week 13**: Performance evaluation, comparison with existing methods, and statistical significance testing
-            **Week 14**: Sensitivity analysis, robustness testing, and scenario analysis for different operational conditions
-            **Week 15**: Research manuscript preparation and submission to target publication venue
-            **Week 16**: Technical documentation, policy recommendations, and open-source toolkit development
-            
+```
+┌──────────────────────────┐
+│    Raw FCPS HTML Files   │
+└───────────────┬──────────┘
+                │
+     (HTML Parser + Normalizer)
+                │
+                ▼
+┌──────────────────────────┐
+│    meals_combined.csv    │
+└───────────────┬──────────┘
+                │
+       (Data Preprocessing)
+                │
+   ┌────────────┼───────────────┬──────────────┐
+   ▼            ▼               ▼
+Univariate   Multivariate     Benchmark  
+   LSTM          GRU           Models
+   │             │               │
+   └───────┬─────┴───────┬──────┘
+           ▼             ▼
+      Forecasts   Performance Charts
+           │             │
+           └───────┬────┘
+                   ▼
+        Streamlit Dashboard
 
 
-## 6 Expected Number Students:  
+---
+```
 
-            This project is designed for **1 student** with strong technical background in:
-            - **Machine Learning and Time-Series Analysis** (required): Experience with forecasting models, optimization algorithms, and statistical analysis
-            - **Data Science and Analytics** (required): Python/R programming, data preprocessing, visualization, and statistical modeling
-            - **Operations Research or Economics** (preferred): Understanding of optimization, cost-benefit analysis, and operational efficiency metrics
-            - **Database Management** (required): Experience with data integration, SQL, and handling large datasets
+# 🤖 Model Pipeline
 
-            The focused scope on school food service analytics ensures the single student can make substantial individual
-             contributions suitable for first-author publication in a high-impact operations research or food policy journal. 
-             The project combines real-world data with advanced analytics techniques, providing clear individual research
-              contributions.
-            
+## 📌 **Univariate Forecasting (LSTM / GRU)**  
+Uses district-wide *daily* production costs:
 
-## 7 Possible Issues:  
+➡️ `[Cost(t−7) … Cost(t−1)] → Predict Cost(t)`
 
-            **Technical Challenges and Mitigation Strategies:**
+Models:  
+- LSTM  
+- GRU  
+- Feedforward baseline  
+- XGBoost  
+- Linear Regression  
 
-            **Challenge 1: Data Quality and Completeness**
-            - Risk: FCPS datasets may have missing values, inconsistent recording practices, or data quality issues
-            - Mitigation: Implement robust data preprocessing pipelines, develop multiple imputation strategies, collaborate with FCPS 
-            staff for data validation, and create data quality assessment protocols
+---
 
-            **Challenge 2: Model Complexity and Interpretability**
-            - Risk: Advanced ML models may be too complex for practical implementation by food service staff
-            - Mitigation: Develop interpretable model variants, create user-friendly interfaces, provide comprehensive training
-             materials, and implement model explanation techniques (SHAP, LIME)
+## 📌 **Multivariate Forecasting**
 
-            **Challenge 3: Seasonal and Event-Based Variability**
-            - Risk: School food service has complex seasonal patterns and irregular events that may be difficult to model
-            - Mitigation: Incorporate comprehensive calendar data, develop event-based adjustments, use ensemble methods for robustness,
-             and implement adaptive learning algorithms
+**Features:**  
+- served_total  
+- planned_total  
+- discarded_total  
+- left_over_total  
 
-            **Challenge 4: Multi-School Generalization**
-            - Risk: Models trained on specific schools may not generalize to other schools with different demographics or operational 
-            patterns
-            - Mitigation: Develop hierarchical models that account for school-specific factors, implement transfer learning techniques,
-             and validate across diverse school contexts within FCPS
+**Target:**  
+- production_cost_total  
 
-            **Challenge 5: Real-Time Implementation Challenges**
-            - Risk: Operational deployment may face technical challenges with real-time data integration and system performance
-            - Mitigation: Design scalable architecture, implement efficient algorithms, develop offline backup systems, and create
-             comprehensive testing protocols
+Models:  
+- Linear Regression  
+- XGBoost  
+- FeedForwardNN  
+- GRU (sequence-based, school-wise) 
+- LSTM 
 
-            **Challenge 6: Regulatory and Nutritional Compliance**
-            - Risk: Optimization models may conflict with federal nutrition requirements or food safety regulations
-            - Mitigation: Embed regulatory constraints directly into optimization models, collaborate with nutrition experts,
-             implement compliance monitoring, and develop fallback strategies
+---
 
-            **Data and Privacy Considerations:**
+# 🚀 Getting Started
 
-            **Challenge 7: Student Privacy and Data Security**
-            - Risk: Student-level data requires careful privacy protection and secure handling
-            - Mitigation: Implement data anonymization techniques, follow FERPA guidelines, use aggregated data where possible,
-             and develop secure data handling protocols
+### ✔️ Prerequisites
+## Module Installation
 
-            **Challenge 8: Institutional Collaboration and Access**
-            - Risk: Ongoing data access and collaboration with FCPS may face administrative or policy challenges
-            - Mitigation: Establish formal data sharing agreements, maintain regular communication with school district partners,
-             and develop sustainable collaboration frameworks
+You can install the following modules through pip
+```bash
+pip install -r src/requirements.txt
+```
+Install:
 
-            **Project Management and Timeline Risks:**
-
-            **Risk: Scope Expansion and Feature Creep**
-            - Mitigation: Maintain clear project boundaries, prioritize core contributions, implement agile development practices,
-             and prepare incremental publication strategy
-
-            **Risk: Technical Implementation Complexity**
-            - Mitigation: Start with simpler baseline models, implement iterative development cycles, maintain regular advisor 
-            consultations, and prepare backup approaches for complex components
-
-            **Risk: Data Processing and Analysis Time**
-            - Mitigation: Develop automated preprocessing pipelines, utilize cloud computing resources, implement parallel processing 
-            approaches, and prepare contingency plans for computational bottlenecks
-
-            **Publication Strategy Risks:**
-
-            **Risk: Competitive Research Environment**
-            - Mitigation: Focus on unique FCPS dataset advantages, target multiple venue options, prepare workshop papers for 
-            early visibility, and maintain active research community engagement
-
-            **Risk: Interdisciplinary Review Challenges**
-            - Mitigation: Clearly position work within target venue contexts, collaborate with domain experts, prepare comprehensive
-             literature reviews, and ensure methodological rigor across disciplines
-            
+- Python 3.10+  
+- pip   
+- PyTorch  
+- XGBoost
+- pandas
+- numpy
+- beautifulsoup4
+- lxml
+- pdfplumber
+- PyPDF2
+- tqdm
+- statsmodels
+- scikit-learn
+- matplotlib
+- streamlit 
 
 
-## Contact
-- Author: Amir Jafari
-- Email: [ajafari@gwu.edu](mailto:ajafari@gwu.edu)
-- GitHub: [https://github.com/amir-jafari/Capstone](https://github.com/https://github.com/amir-jafari/Capstone)
+
+
+### 🌱 Environment Setup
+Important source files: 
+
+```
+src/component/preprocess.py     
+src/component/EDA.py            
+src/component/univariate/        
+src/component/multivariate/     
+src/tests/combine_csv.py     
+src/maincode/main.py         
+
+```
+
+## HTML → CSV Preprocessing
+
+```
+python src/tests/combine_csv.py
+
+```
+This script:
+
+- Reads FCPS breakfast & lunch HTML production records
+- Extracts → served, planned, discarded, leftover, cost
+- Cleans currency & % values
+- Standardizes headers
+- Generates:
+
+```
+src/Data/Output/breakfast_combined.csv
+src/Data/Output/lunch_combined.csv
+src/Data/Output/meals_combined.csv
+```
+
+## Run the Data Pipeline 
+
+Before opening the dashboard, you must generate the data:
+
+```
+python src/maincode/main.py
+```
+## Download Instructions Navigate to:
+
+LSTM Models: https://drive.google.com/drive/folders/1daVVcrvS2u6rFBcKG_RjkQJh6Q19z4P7?usp=drive_link
+
+GRU Models: https://drive.google.com/drive/folders/1KtWlLppDeVkl30KRoWk2DoWPzYHRoRkN?usp=drive_link
+
+Comparing Models: https://drive.google.com/drive/folders/1GFUuX3pHYzUkceX-JBETsv6FtPSd_x0M?usp=drive_link
+
+# ✅ 📊 Dashboard (Streamlit App)
+
+Our interactive FCPS Meal Analytics Dashboard provides real-time insights into school meal operations.
+Run the full interactive dashboard
+
+```
+streamlit run demo/app.py
+```
+
+## Folder Structure
+
+```
+├── demo
+│   ├── fig
+│   │   └── Video.mp4
+│   │
+│   ├── images
+│   │   ├── multivariate_plots
+│   │   │   ├── GRU.png
+│   │   │   ├── LSTM.png
+│   │   │   ├── fnn_model.png
+│   │   │   ├── linear_regression.png
+│   │   │   └── xgboost_model.png
+│   │   │
+│   │   └── univariate_plots
+│   │       ├── GRU.png
+│   │       ├── LSTM.png
+│   │       ├── LSTM_train_test_forecast_example.png
+│   │       ├── fnn_model.png
+│   │       ├── linear_regression.png
+│   │       └── xgboost_model.png
+│   │
+│   ├── .gitkeep
+│   └── app.py
+│
+├── presentation
+│   ├── Capstone_Presentation_Group9.pptx
+|   ├── Capstone_Presentation_Group9.pdf 
+│   └── .gitkeep
+│
+├── reports
+│   ├── Latex_report
+│   │   ├── fig
+│   │   ├── File_Setup.tex
+│   │   ├── Report_PDF.pdf
+│   │   ├── references.bib
+│   │   └── word_report.text
+│   │
+│   ├── Markdown_Report
+│   │   └── .gitkeep
+│   │
+│   ├── Progress_Report
+│   │   ├── Markdown_CheatSheet
+│   │   │   ├── Markdown1.pdf
+│   │   │   ├── Markdown2.pdf
+│   │   │   ├── Markdown3.pdf
+│   │   │   └── Markdown4.pdf
+│   │   │
+│   │   ├── Progress_Report.md
+│   │   └── img_2.png
+│   │
+│   └── Word_Report
+│       └── Final Report.docx
+│
+├── research_paper
+│   ├── Latex
+│   │   ├── fig
+│   │   │   └── images
+│   │   ├── mybib.bib
+│   │   ├── research_paper.pdf
+│   │   └── research_paper.tex
+│   │
+│   ├── Word
+│   │   └── Conference-template-A4.doc
+│   │
+│   └── .DS_Store
+│
+└── src
+    ├── Data
+    │   ├── Html
+    │   │   ├── May 2025 Breakfast production records
+    │   │   └── May 2025 Lunch production records
+    │   │
+    │   └── Output
+    │       ├── breakfast_combined.csv
+    │       ├── lunch_combined.csv
+    │       └── meals_combined.csv
+    │
+    ├── component
+    │   ├── EDA.py
+    │   ├── preprocess.py
+    │   │
+    │   ├── multivariate
+    │   │   ├── model.py
+    │   │   ├── plot.py
+    │   │   ├── training.py
+    │   │   └── utils.py
+    │   │
+    │   └── univariate
+    │       ├── comparing_model.py
+    │       ├── forecasting.py
+    │       ├── model.py
+    │       ├── plot.py
+    │       ├── training.py
+    │       └── utils.py
+    │
+    ├── maincode
+    │   └── main.py
+    │
+    ├── results
+    │   └── all_school_meal_forecasts.csv
+    │
+    ├── tests
+    │   ├── combine_csv.py
+    │   └── multivariate_main.py
+    │
+    ├── .gitkeep
+    └── requirements.txt
+```
+
+# 📡 API Endpoints
+
+Although this project does not use external REST APIs, the internal Streamlit dashboard relies on several Python-based API-like functions that power forecasting and analysis.
+
+### 🔧 Internal Model Endpoints
+
+| Function | Description | Location |
+|---------|-------------|----------|
+| `forecast_future_dates()` | Predicts next *k* days using trained LSTM/GRU models | `src/forecasting.py` |
+| `load_and_aggregate_district()` | Loads CSV + cleans + aggregates district production cost | `src/utils.py` |
+| `safe_time_split()` | Chronological train-test split for time-series | `src/utils.py` |
+| `TimeSeriesDataset` | Creates sliding windows for univariate LSTM/GRU | `src/utils.py` |
+| `ForecastingModel` | LSTM/GRU model class | `src/model.py` |
+| `FeedForwardRegressor` | Baseline neural network model | `src/model.py` |
+| `forecast_all_models_in_folder()` | Runs forecasts for every school (batch mode) | `app.py` |
+| `school_loss_analysis()` | Detects schools with high loss or wastage | `app.py` |
+
+### 🖥️ Dashboard-Level Actions (Triggered in Streamlit)
+
+| Action | Trigger Button | What Happens |
+|--------|----------------|--------------|
+| Run Forecast | **Run Forecast** | Loads all LSTM/GRU models and predicts next *k* days |
+| Compare Models | **Compare LSTM vs GRU** | Runs both folders → compares total cost curves |
+| AI Recommendations | **AI Recommendations** | Suggests waste reduction strategies |
+| Wastage Heatmap | Auto-loaded | Creates weekday-based discarded food heatmap |
+| School-Level View | Dropdown Filters | Filters graphs/tables by school + meal type |
+
+# 🔧 Troubleshooting
+
+Quick solutions to the most common issues:
+
+| Issue | Cause | Simple Fix |
+|-------|--------|-------------|
+| **Empty CSV after parsing** | Wrong HTML folder path | Check breakfast/lunch folder paths before running `preprocess_html.py` |
+| **Date errors / NaNs** | FCPS dates use mixed formats | Use `dayfirst=True` in `pd.to_datetime()` (already used in code) |
+| **LSTM/GRU model not loading** | Wrong `.pth` path | Ensure model file is inside: `univariate/LSTM_models/` or `univariate/GRU_models/` |
+| **Streamlit blank page** | Cached old data | Run: `streamlit cache clear` |
+| **XGBoost import error** | Not installed | `pip install xgboost` |
+| **Very high forecast values** | Outliers in cost | 99th percentile cleaning already included—recheck preprocessing |
+| **Training too slow** | Model too big | Reduce `HIDDEN_DIM` from 256 → 128 |
+| **Forecast shows empty for a school** | School name mismatch | Filename uses `_` (e.g., `Aldrin_Elementary`), CSV uses spaces → ensure both match |
+| **Heatmap blank** | Non-numeric waste columns | Convert with `pd.to_numeric(errors='coerce').fillna(0)` |
+| **“Forecast failed” error** | Not enough rows for that school | Check if subset CSV has enough data; retrain if needed |
+| **Port already in use (Streamlit)** | Another app running | Run: `lsof -i :8501` → `kill -9 <PID>` |
+
+---
+# 📊 Research & Performance
+
+### 1️⃣ Univariate Forecasting Results (Cost-Only Models)
+
+These models predict **production_cost_total** using only past cost values (sliding window of 7 days).
+
+| **Model** | **RMSE** | **R²** | **Notes** |
+|----------|----------|--------|-----------|
+| **LSTM** | ⭐ Best | High | Learns long-term temporal patterns extremely well |
+| **GRU** | Very Good | High | Faster than LSTM, stable performance |
+| **XGBoost** | Medium | Medium | Strong non-linear baseline, but not sequence-aware |
+| **Feed-Forward NN (FNN)** | Medium | Medium | Good baseline but ignores temporal structure |
+| **Linear Regression** | Poor | Low | Cannot model sequential dependencies |
+
+---
+
+### 2️⃣ Multivariate Forecasting Results (School-Level Features)
+
+These models use:
+
+- `served_total`  
+- `planned_total`  
+- `discarded_total`  
+- `left_over_total`  
+
+to predict:
+
+- `production_cost_total`
+
+| **Model** | **Performance** | **Notes** |
+|----------|------------------|-----------|
+| **GRU (Sequence Model)** | ⭐ Best (if metrics show this) | Captures school-wise temporal patterns across multiple features |
+| **LSTM (Sequence Model)** | ⭐ Best / Very Strong | Multivariate LSTM trained on same features; stable long-range learning |
+| **XGBoost** | Strong | Excellent for structured/tabular data |
+| **Feed-Forward NN** | Good | Learns non-linear interactions but not sequence structure |
+| **Linear Regression** | Baseline | Limited for multi-feature temporal data |
+
+
+---
+
+### 🗝️ Key Findings (Short)
+
+- Both **multivariate LSTM and GRU** clearly outperform classical models (XGBoost, FNN, Linear Regression).
+- Including **served, planned, discarded, and leftover meals** improves cost prediction compared to cost-only models.
+- Sequence models (LSTM/GRU) handle **school-level temporal behavior** much better than non-sequence models.
+- Outlier removal and proper preprocessing stabilize forecasts and reduce noise.
+
+
+---
+
+# 🧰 Technology Stack
+
+| Category | Technologies |
+|---------|--------------|
+| 🤖 Machine Learning | PyTorch · XGBoost · Scikit-Learn |
+| 🧠 Deep Learning | LSTM · GRU · FeedForwardNN |
+| 🖥️ Dashboard | Streamlit · Plotly Express |
+| 🧹 Data Processing | Pandas · NumPy · BeautifulSoup · lxml |
+| 📊 Visualization | Matplotlib · Seaborn |
+| 🧪 Evaluation | MSE · RMSE · R² · MAE |
+| 📁 Utilities | Pickle · Glob · Pathlib · OS |
+| 🔧 Version Control | Git · GitHub |
+| 🚀 Deployment | Local Machine · Streamlit Cloud |
+| 💻 Language | Python |
+
+
+# ✅ 🤝 Contributing
+We welcome contributions from developers, students, and researchers.
+Steps:
+```
+# Create a feature branch
+git checkout -b feature/my-feature
+
+# Make changes and commit
+git commit -m "Added new improvement"
+
+# Push to repo
+git push origin feature/my-feature
+```
+Then open a Pull Request on GitHub.
+
+# ✅ 📄 License
+This project is licensed under the MIT License.
+You are free to use, modify, and distribute the software with proper attribution.
+
+# ✅ 🙏 Acknowledgments
+
+Special thanks to the contributors who made this project possible:
+
+•	Dr. Amir Jafari – Project Guidance (GWU)
+
+•	Fairfax County Public Schools (FCPS) – For providing production record structures
+
+•	Open-source community – PyTorch, Streamlit, XGBoost
+
+•	Team Members – Areena, Chaya, Varshith
 

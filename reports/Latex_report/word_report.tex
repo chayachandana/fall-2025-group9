@@ -1,0 +1,772 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage[colorlinks=true,
+            linkcolor=black,
+            citecolor=black,
+            urlcolor=blue]{hyperref}
+\usepackage{url}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup[subfigure]{labelformat=empty}
+\usepackage{float}  
+\usepackage{enumitem}
+\usepackage{booktabs} 
+\usepackage[hidelinks]{hyperref} 
+\usepackage[table]{xcolor}
+
+
+\definecolor{headerblue}{RGB}{0,78,111}    
+\definecolor{rowblue}{RGB}{210,234,245}    
+\definecolor{rowblue2}{RGB}{183,217,235}   
+
+\onehalfspacing 
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+
+    \includegraphics[width=6 cm]{Picture 1.png}\\[1.5cm]
+
+    {\Large The George Washington University\\[0.2cm]
+    Data Science Program\par}
+    \vspace{1.8cm}
+
+    {\LARGE\bfseries
+    Forecasting School Meal Production Costs:\\[0.2cm]
+    A Comparative Study of Machine Learning and Deep Learning\\
+    Time-Series Models\par}
+    \vspace{1.8cm}
+
+    {\large
+    Varshith Reddy\\
+    Areena\\
+    Chaya\par}
+    \vspace{1.2cm}
+
+    {\large
+    Capstone Project Report\\[0.2cm]
+    Fall 2025\par}
+
+    \vfill
+\end{titlepage}
+
+\begin{abstract}
+Meal production planning in Fairfax County Public Schools (FCPS) is difficult due to
+irregular student participation and fluctuating demands for meals, resulting in a high
+percentage of food waste. These patterns are highly nonlinear and difficult to model with
+conventional forecasting approaches, making it a significant challenge for school
+administrators. In this project we designed, implemented, and compared several machine
+learning and deep learning models, including Linear Regression, XGBoost, Feed-Forward
+Neural Networks (FNN), Gated Recurrent Units (GRU), and Long Short-Term Memory
+(LSTM) networks using real FCPS multivariate meal-production data. Among all models,
+the univariate LSTM achieved the best performance, reducing the mean forecasting error
+from about 197 to 137 (30.6\% improvement). These results show that deep learning
+methods can substantially improve production cost forecasting, support more accurate
+budgeting, reduce food waste, and enable better data-driven decision making in school
+meal programs.
+\end{abstract}
+
+\newpage
+
+
+\tableofcontents
+\newpage
+
+\listoffigures
+
+
+\listoftables
+\newpage
+
+
+\section{Introduction}
+ 
+
+Forecasting daily production costs in school meal programs is one of the most enduring challenges faced by district administrators, nutrition service directors, and operational planners. Even with the enhancement of digital record-keeping and standardized menus in schools, there are major fluctuations in areas such as student participation, ingredient prices, and food waste. These fluctuations complicate budgeting, disrupt daily meal planning, and increase operational inefficiencies. Traditional approaches to forecasting-which typically include heuristic rules or a linear extrapolation-cannot capture nonlinear, irregular patterns, and time dependencies present in real production-cost data, at least as influenced by school-specific behaviors, holidays, and supply-chain variability. 
+
+Recent developments in machine learning and deep learning allow models to learn complex temporal dependencies directly from their historical data. In this work, we develop an integrated framework in forecasting short-term production costs by using a dataset created through scraping and merging over 100 HTML production reports of various FCPS schools. This resulted in challenges such as inconsistent currency formatting, irregular date structures, missing entries, and extreme outliers; these are dealt with through a comprehensive preprocessing pipeline that involves currency coercion, outlier removal, automatic date parsing, temporal aggregation, and sliding-window sequence generation. 
+
+With the cleaned dataset, we assess the performance of various models, including Linear Regression, XGBoost, Feed-Forward Neural Networks, Gated Recurrent Units, and Long Short-Term Memory networks for both univariate and multivariate settings. All models are trained on a 70-30 train-test split and tested on the test set using standard error-based metrics: MSE, RMSE, MAE, and R². Several diagnostic plots, such as predicted-vs-actual graphs and multi-day forecasts, have also been created to assess each model's performance in terms of capturing the underlying temporal structure and variability in the costs. 
+
+The aim of this work is to provide a broad comparison of forecasting techniques for school meal production-cost forecasting and to offer a practical framework that districts can use to improve budget planning, reduce food waste, and enhance overall operational efficiency. The sections that follow outline the dataset and preprocessing (Section 2), exploratory analysis (Section 3), methodology and models (Section 4), results (Section 5), practical implications (Section 6), and conclusions with future directions (Section 7). 
+
+%
+\vspace{2.5cm}
+
+\section{Problem Statement}
+
+Daily production cost forecasting in FCPS school meal programs is a challenging task as real cost values change unpredictably due to menu differences, student participation, leftover amounts, discarded food, and ingredient price fluctuations. Collected raw data from FCPS, which consists of over 100 HTML production reports, includes inconsistent currency format representations, missing and irregular entries, school-specific variations, and extreme outliers, further complicating the forecasting problem. These nonlinear, time-varying patterns cannot be reflected by manual estimates or historical averages on which FCPS relies for planning. 
+
+This project's challenge is to transform messy, unstructured FCPS production reports into a clean and reliable time-series dataset and determine which forecasting approach predicts next-day production costs most accurately. After creating meals\_combined.csv using HTML scraping, preprocessing, outlier removal, and sliding-window generation, we implemented the following machine learning and deep learning models in univariate and multivariate settings: Linear Regression, Feed-Forward Neural Networks, XGBoost, GRU, and LSTM. The goal is to determine what type of model learns temporal cost patterns most effectively so FCPS can reduce overproduction, lower food waste, and better plan budgets. 
+
+
+\section{Related Work}
+
+Research into the management of school meals falls within two broad categories: studies on food waste in cafeterias and studies on methods of forecasting. Together, these give a background on what exactly this project is trying to address and the limitations of existing approaches.
+
+\subsection{Food Waste in School Cafeterias}
+
+Food waste in school cafeterias has been documented as a financial and environmental issue. Cohen et al. (2013) found that students wasted nearly 20% of meals served in middle school cafeterias, with milk and vegetables most frequently discarded. They estimated that each wasted lunch cost approximately $0.53, which becomes significant when aggregated across an entire district. 
+
+In fact, after the introduction of healthier meal options, such as fruits and vegetables, Byker et al. (2014) found that food waste increased by 56%. Students often took the items but did not consume them, which suggested a mismatch between planned menus and actual consumption behavior. 
+
+Smith and Cunningham-Sabo (2014) showed that waste rates vary greatly across menu items; some items were wasted at a rate over 35%, while popular meals resulted in less than 15% waste. In addition, they found that schools often over-prepare meals “just in case,” adding to unnecessary costs and increasing waste. 
+
+Combined, these studies underscore the fact that poor predictions of meal demand lead to food and financial waste; thus, motivating the need for better forecasting methods to anticipate production needs before meal preparation. 
+
+
+\subsection{Forecasting Models and Deep Learning}
+
+Complementary to food-waste research, improvements in time-series forecasting-most recently with deep learning-offer powerful instruments to model complex patterns. Hochreiter and Schmidhuber 1997 proposed Long Short-Term Memory (LSTM) networks, which are designed to handle the disadvantage of previous RNNs by keeping long-term information using their gating mechanism. Later, Cho et al. 2014 developed the Gated Recurrent Unit (GRU), a faster alternative to LSTMs. Chung et al. 2014 showed that LSTMs generally provide better performance than GRUs on sequences of longer length, but GRUs performed roughly as well on shorter forecasting horizons, as seen in the 7-day predictions in this study. 
+
+Deep learning has returned promising results in many sectors. Kong et al. (2019) used LSTMs to forecast residential electricity consumption and achieved a low error rate of only 2.28%, while traditional models produced 5.73% error. Lai et al. (2018) applied LSTM-based architectures for retail demand forecasting and reported an accuracy improvement of about 15–20% over the earlier methods. 
+
+Despite these developments, no previous studies have used deep learning or state-of-the-art forecasting approaches to forecast school meal production costs. The few school-related papers only measure post-meal wastes, while the forecasting papers target industries like energy, retail, and healthcare rather than school operations. 
+
+Taken together, food-waste studies reveal the consequence of poor meal planning, while forecasting research demonstrates that state-of-the-art sequence-learning models can effectively learn nonlinear and time-varying patterns. However, these research streams are separated. Food-waste studies provide no predictive solution, whereas forecasting studies fail to consider the operational challenges faced by school meal production. 
+
+This project bridges that gap by applying machine learning and deep learning models, including Linear Regression, XGBoost, Feed-Forward Neural Networks, GRU, and LSTM, to real production-cost data scraped from over 100 HTML reports. Unlike any other studies before them, our study focuses explicitly on forecasting production costs prior to preparation, providing a data-driven framework through which school districts can seek to minimize waste, enhance the accuracy of budgeting, and inform more efficient meal-planning decisions. 
+
+
+\section{Solution and Methodology}
+This section details the overall designed forecasting solution for this project, including the data acquisition pipeline, preprocessing procedures, exploratory analysis, time-series construction, model architectures, evaluation metrics, and backtesting strategy. 
+
+\subsection{Data Acquisition and Parsing Pipeline}
+
+This study was based on de-identified, publicly available daily production reports published from FCPS. The raw data did not come in a tabular form; rather, it was available in over 100 HTML files, each containing item-level tables at breakfast and lunch across more than 100 schools. These tables included quantities planned, served, discarded, leftover, and the total production cost. 
+
+To transform these unstructured reports into an analysis-ready dataset, a custom HTML parsing pipeline was implemented. This pipeline automatically: 
+
+detected school headers and meal sections 
+
+Extracted item-level tables 
+
+removed subtotal rows 
+
+standardized column names 
+
+cleaned numeric fields, including currency, integers, percentages 
+
+Corrected missing entries by using forward/backward fill 
+
+Removed invalid or empty rows. 
+
+Currency strings like “\$13.32” were converted to numeric values, symbols and commas were removed; and percentage fields were converted into floating-point values. After processing all HTML files, breakfast and lunch datasets were combined into a single structured dataset called meals\_combined.csv, with approximately 177,492 records and 20 columns.
+
+\begin{table}[h]
+    \centering
+    \caption{Data dictionary of input features.}
+    \label{tab:data_dictionary}
+    \begin{tabular}{p{0.28\textwidth} p{0.62\textwidth}}
+        \toprule
+        \textbf{Name of Feature} & \textbf{Description of Feature} \\
+        \midrule
+        school\_name & Name of the FCPS school associated with the production report. \\
+        date & Calendar date of the meal production record (YYYY-MM-DD). \\
+        identifier & Unique internal identifier for each item entry. \\
+        name & Name of the meal item (e.g., entr\'ee, milk, side dish). \\
+        planned\_reimbursable & Number of planned reimbursable meals. \\
+        planned\_non\_reimbursable & Number of planned non-reimbursable meals. \\
+        planned\_total & Total number of meals planned. \\
+        offered\_total & Total quantity of items offered. \\
+        served\_reimbursable & Count of reimbursable meals served. \\
+        served\_non\_reimbursable & Count of non-reimbursable meals served. \\
+        served\_total & Total meals served. \\
+        served\_cost & Cost associated with served items. \\
+        discarded\_total & Number of meals discarded. \\
+        discarded\_percent\_of\_offered & Percentage of offered items discarded. \\
+        discarded\_cost & Cost of discarded meals. \\
+        subtotal\_cost & Intermediate cost measure. \\
+        left\_over\_total & Number of leftover meals. \\
+        left\_over\_percent\_of\_offered & Percentage of offered items left over. \\
+        left\_over\_cost & Cost associated with leftover items. \\
+        production\_cost\_total & Total production cost (target variable). \\
+        meal\_type & Meal category (Breakfast or Lunch). \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Columns Used for Forecasting Models}
+\begin{tabular}{p{4cm} p{10cm}}
+\hline
+\textbf{Column} & \textbf{Description} \\ \hline
+Date & Time index for forecasting sequences. \\
+School Name & Grouping variable maintaining school-specific continuity. \\
+Meal Type & Breakfast or lunch identifier. \\
+Served Total & Lagged feature capturing consumption behavior. \\
+Planned Total & Planned demand indicator. \\
+Discarded Total & Waste-related signal contributing to variability. \\
+Left Over Total & Operational efficiency indicator. \\
+Production Cost Total & Primary target variable for forecasting tasks. \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Exploratory Data Analysis (EDA)}
+
+Extensive EDA was performed to understand the statistical
+properties of the dataset, assess data quality, verify distributional
+behavior of key variables, and check for potential multicollinearity
+among predictors. The main focuses of interest were the
+\textit{production\_cost\_total} variable, operational meal counts,
+and structural relationships among these features. All analyses
+were conducted after the dataset was fully cleaned and
+standardized.
+
+\subsubsection*{Outlier Detection and Preprocessing}
+
+During the preliminary analysis, the \textit{production\_cost\_total}
+variable exhibited a strong right-skew due to rare extreme
+anomalies. One such anomaly appeared in the raw dataset:
+the item \textit{``Fat Free Chocolate Milk''} at Hughes Middle School
+showed a production cost of \(\$14{,}010\) for a single day. This value,
+though real in the dataset, is implausible in practice and justified
+the need for strict outlier removal to stabilize model training.
+
+\paragraph{Outlier removal used:}
+
+\begin{itemize}
+    \item \textbf{IQR-based detection:}\\
+    A value \(x\) is considered an outlier if:
+    \[
+        x < Q_1 - 1.5 \times IQR
+        \quad \text{or} \quad
+        x > Q_3 + 1.5 \times IQR.
+    \]
+
+\item\textbf{99th-percentile thresholding:}
+
+Used only for \textit{production\_cost\_total} to remove extreme spikes.
+\end{itemize}
+\begin{itemize}
+    \item Applied only to the target variable to eliminate rare extreme values.
+    \item Helps stabilize the distribution before training.
+    \item Ensures that unrealistic anomalies do not distort model learning.
+\end{itemize}
+
+Whenever possible, missing values have been filled, and rows that could not be logically reconstructed have been removed. Dates were standardized to ensure temporal continuity across all schools and meal types.
+
+
+\subsection*{Correlation Analysis}
+
+A Pearson correlation matrix (Fig.~1) revealed strong correlation between \textit{served\_total} and \textit{production\_cost\_total}, confirming cost dependence on volume served.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.75\textwidth]{heatmap.png}
+    \caption{Correlation heatmap showing pairwise Pearson correlations among numerical features.}
+    \label{fig:correlation_heatmap}
+\end{figure}
+
+
+\subsection*{Multicollinearity Diagnostics}
+
+Two tests were conducted:
+
+\begin{itemize}
+    \item \textbf{Variance Inflation Factor (VIF):}
+
+    \[
+        \text{VIF}(X_i) = \frac{1}{1 - R_i^{2}}
+    \]
+
+    All VIF values ranged from \textbf{1.02--1.28}, indicating negligible multicollinearity.
+
+    \item \textbf{Singular Value Decomposition (SVD):}
+
+    \[
+        X = U \Sigma V^{T}
+    \]
+
+    All singular values were considerably above zero, which means the dataset is well-conditioned.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{Picture 2.png} 
+    \caption{Singular value magnitudes from the SVD of the standardized feature matrix.}
+    \label{fig:svd_scree}
+\end{figure}
+
+
+Overall, EDA validated that the cleaned dataset was amenable for downstream time-series modeling.
+
+\subsection*{Time-Series Construction}
+
+For each school $s$ and meal type $m$, an individual daily time series
+$\{ y_t^{(s,m)} \}$ was created by aggregating all item-level 
+\textit{production\_cost\_total} values for that day.
+
+A sliding-window approach was used to create supervised learning samples. 
+For a window size $W = 3$:
+
+\begin{itemize}
+    \item \textbf{Input:} last 3 days of costs
+    \item \textbf{Output:} next-day cost
+\end{itemize}
+
+The forecasting target is expressed as:
+\[
+\hat{y}_{t+1} = f(y_t,\, y_{t-1},\, y_{t-2})
+\]
+
+Each school–meal pair was modeled independently to preserve school-specific behavior. 
+\subsection*{Data Scaling and Splitting}
+
+Each time series was normalized using Min--Max scaling:
+\[
+\tilde{y_t} = 
+\frac{y_t - \min(y_{\text{train}})}
+     {\max(y_{\text{train}}) - \min(y_{\text{train}})}
+\]
+
+Chronological splits were used:
+\begin{itemize}
+    \item 60\% training
+    \item 20\% validation
+    \item 20\% testing
+\end{itemize}
+
+This prevented information leakage and preserved temporal ordering.
+
+
+\subsection*{Forecasting Pipeline}
+
+The full forecasting pipeline Fig. 2 included:     
+
+\begin{itemize}
+    \item Load cleaned dataset
+    \item Split into train--validation--test sets
+    \item Scale training series
+    \item Apply sliding-window transformation
+    \item Optional oversampling for deep models
+    \item Train models with early stopping
+    \item Generate predictions on the test set
+    \item Evaluate performance using statistical metrics
+\end{itemize}
+
+It was this modular structure that ensured reproducibility and model comparability. 
+
+\subsection*{Forecasting Models}
+
+The following models were evaluated in both multivariate and univariate settings:
+
+\begin{itemize}
+    \item \textbf{Linear Regression}
+    \item \textbf{XGBoost Regressor}
+    \item \textbf{Feedforward Neural Network (FNN)}
+    \item \textbf{Gated Recurrent Unit (GRU)}
+    \item \textbf{Long Short-Term Memory Network (LSTM)}
+\end{itemize}
+
+\paragraph{Univariate vs. Multivariate Inputs.}
+Univariate models used only historical \textit{production\_cost\_total} sequences.
+Multivariate models used five operational features:
+\textit{served\_total}, \textit{planned\_total}, \textit{discarded\_total},
+\textit{leftover\_total}, and \textit{production\_cost\_total}.
+\paragraph{The univariate LSTM outperformed all other models in terms of accuracy and stability.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{pipeline.png}
+    \caption{Time series and forecasting pipeline.}
+    \label{fig:pipeline}
+\end{figure}
+\subsubsection*{Multivariate Forecasting}
+
+In the multivariate setting, each daily observation is represented by a feature vector:
+\[
+\mathbf{x}_t =
+\begin{bmatrix}
+\text{served\_total}\\
+\text{planned\_total}\\
+\text{discarded\_total}\\
+\text{leftover\_total}\\
+\text{production\_cost\_total}
+\end{bmatrix}
+\in \mathbb{R}^{5}.
+\]
+
+Given a window length $W$, the forecasting task is:
+\[
+\hat{y}_{t+1} = f(\mathbf{x}_t, \mathbf{x}_{t-1}, \ldots, \mathbf{x}_{t-W+1}).
+\]
+
+Here, $\hat{y}_{t+1}$ is the predicted next-day production cost.  
+Linear Regression, XGBoost, FNN, GRU, and LSTM models were trained on these multivariate sequences to evaluate whether incorporating additional operational variables (served, planned, discarded, leftover) improves accuracy over using the cost alone. 
+\subsubsection*{Univariate Forecasting}
+
+In the univariate setting, the model uses only the historical production cost for each school–meal series.  
+For school $s$ and meal type $m$, we construct a time series $\{y_t^{(s,m)}\}$, where $y_t^{(s,m)}$ is the total production cost on day $t$.
+
+With window size $W$, the forecasting problem becomes:
+\[
+\hat{y}_{t+1}^{(s,m)} = f\left(y_t^{(s,m)}, y_{t-1}^{(s,m)}, \ldots, y_{t-W+1}^{(s,m)}\right).
+\]
+The same set of models (Linear Regression, XGBoost, FNN, GRU, and LSTM) was evaluated in this univariate format. In our experiments, the univariate LSTM consistently achieved the lowest error and highest R\^2, so it was selected as the final model for deployment and backtesting. 
+\subsection*{Evaluation Metrics}
+
+Forecast accuracy was computed using the following metrics:
+
+\paragraph{Mean Squared Error (MSE):}
+\[
+\text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+\]
+
+\paragraph{Root Mean Squared Error (RMSE):}
+\[
+\text{RMSE} = \sqrt{\text{MSE}}
+\]
+
+\paragraph{Mean Absolute Error (MAE):}
+\[
+\text{MAE} = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+\]
+
+\paragraph{Coefficient of Determination ($R^2$):}
+\[
+R^2 = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y})^2}
+\]
+\subsubsection*{Backtesting Procedure}
+
+Forecasts were evaluated using a walk-forward backtesting strategy:
+
+\begin{itemize}
+    \item At each test index $t$, the model received the last $W$ true observations.
+
+    \item Then it predicted the next-day cost:
+    \[
+        \hat{y}_{t+1}
+    \]
+
+    \item Predictions were compared against real values using the defined metrics.
+\end{itemize}
+This setup replicates real FCPS deployment, where only past data are available when forecasting the next day. 
+
+
+\section{Results and Discussion}
+This section presents the performance evaluation of all the forecasting models tested in this paper, together with the experiments conducted to evaluate the accuracy of the proposed forecasting solution. The results are supported with figures, tables, and narrative explanations that interpret the findings. 
+
+\subsection{Experimentation Protocol}
+
+All forecasting experiments were conducted on the cleaned \texttt{meals\_combined.csv} dataset using the daily production cost time series for each school--meal pair.
+
+\noindent The workflow was as follows:
+
+\begin{itemize}
+
+    \item \textbf{Dataset Split:}\\
+    Each time series was divided chronologically into 80\% training and 20\% testing.
+
+    \item \textbf{Model Inputs:}
+    \begin{itemize}
+        \item[\checkmark] \textbf{Multivariate setting:} Inputs included 
+        \texttt{served\_total}, \texttt{planned\_total}, \texttt{discarded\_total}, 
+        \texttt{leftover\_total}, and \texttt{production\_cost\_total}.
+        \item[\checkmark] \textbf{Univariate setting:} Only past values of 
+        \texttt{production\_cost\_total} were used.
+    \end{itemize}
+
+    \item \textbf{Models Evaluated:}
+    \begin{itemize}
+        \item[\checkmark] Linear Regression (LR)
+        \item[\checkmark] XGBoost
+        \item[\checkmark] Feedforward Neural Network (FNN)
+        \item[\checkmark] Gated Recurrent Unit (GRU)
+        \item[\checkmark] Long Short-Term Memory (LSTM)
+    \end{itemize}
+
+    \item \textbf{Evaluation Metrics:}\\
+    The following metrics were used for evaluation:
+    \begin{itemize}
+        \item[\checkmark] Mean Squared Error (MSE)
+        \item[\checkmark] Root Mean Squared Error (RMSE)
+        \item[\checkmark] Mean Absolute Error (MAE)
+        \item[\checkmark] Coefficient of Determination ($R^2$)
+    \end{itemize}
+
+\end{itemize}
+This protocol ensures a fair comparison across all models and reflects realistic deployment conditions whereby models must predict future costs using only past values. 
+
+\subsection{Data Tables:}
+Tables 3 and 4 summarize the quantitative results of all multivariate and univariate models. 
+
+\begin{table}[h!]
+\centering
+\caption{Multivariate Model Performance}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\rowcolor{headerblue}
+\textbf{\color{white} Model} &
+\textbf{\color{white} MSE} &
+\textbf{\color{white} MAE} &
+\textbf{\color{white} $R^2$} \\ \hline
+
+\rowcolor{rowblue}
+Linear Regression & 662.3026 & \textbf{13.7807} & 0.4389 \\ \hline
+\rowcolor{rowblue2}
+XGBoost           & 506.5291 & 11.7514         & 0.5709 \\ \hline
+\rowcolor{rowblue}
+FNN               & 677.3214 & 12.3852         & 0.4262 \\ \hline
+\rowcolor{rowblue2}
+LSTM              & \textbf{259.8} & 14.2605 & \textbf{0.81} \\ \hline
+\rowcolor{rowblue}
+GRU               & 213.1059 & 10.3730         & 0.7734 \\ \hline
+\end{tabular}
+\end{table}
+
+
+\begin{table}[h!]
+\centering
+\caption{Univariate Model Performance}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\rowcolor{headerblue}
+\textbf{\color{white} Model} &
+\textbf{\color{white} MSE} &
+\textbf{\color{white} RMSE} &
+\textbf{\color{white} $R^2$} \\ \hline
+
+\rowcolor{rowblue}
+Linear Regression & 39013.54 & 197.52 & 0.75 \\ \hline
+
+\rowcolor{rowblue2}
+XGBoost           & 39595.32 & 198.99 & 0.74 \\ \hline
+
+\rowcolor{rowblue}
+FNN               & 39241.72 & 198.10 & 0.75 \\ \hline
+
+\rowcolor{rowblue2}
+LSTM              & \textbf{18793.44} & \textbf{137.08} & \textbf{0.86} \\ \hline
+
+\rowcolor{rowblue}
+GRU               & 20186.30 & 142.07 & 0.85 \\ \hline
+\end{tabular}
+\end{table}
+
+
+\subsection*{Interpretation:} 
+
+The tables show that LSTM consistently produced the lowest error in both evaluations; hence, it is the strongest model for school meal production cost forecasting. 
+\subsection{Graphs}
+This section presents visual validation of model performance. 
+\subsubsection{Multivariate Model Plots :}
+
+
+    \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{GRU .png}
+    \caption{Multivariate GRU Predicted vs Actual}
+    \label{fig:gru_multivariate}
+\end{figure}
+   \hfil
+    \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{LSTM.png}
+    \caption{Multivariate LSTM Predicted vs Actual}
+    \label{fig:lstm_multivariate}
+\end{figure}
+  
+
+\begin{itemize}
+    \item The GRU model also performs strongly, with many points near the diagonal. A bit more spread appears for higher values, but overall, GRU makes consistent and reliable predictions using multiple features. 
+
+\item Most points are close to the diagonal line, showing that the LSTM predicts very accurately when multiple features are used. It captures the relationship between served meals, planned meals, waste, and cost very well. 
+\end{itemize}
+
+   \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{FNN.png}
+    \caption{Multivariate FNN Predicted vs Actual}
+    \label{fig:fnn_multivariate}
+\end{figure}
+   \hfill
+ \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{LR.png}
+    \caption{Multivariate Linear Regression Predicted vs Actual}
+    \label{fig:linear_regression_multivariate}
+\end{figure}
+
+\begin{itemize}
+\item FNN captures the general direction of the data, but the points are widely spread. This indicates the model struggles with sharp changes in cost and cannot fully use all features to make precise predictions. 
+
+\item Linear Regression shows a clear trend but has a wide scatter away from the diagonal. This means its predictions are less accurate because a simple linear model cannot fully learn complex patterns in the data. 
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{XGBoost.png}
+    \caption{Multivariate XGBoost: Predicted vs Actual}
+    \label{Figure 8: XGBoost}
+\end{figure}
+
+
+\begin{itemize}
+    \item XGBoost predicts reasonably well, and many points fall near the diagonal line. However, the scatter increases for higher cost values, showing that while it learns non-linear patterns, it sometimes struggles on more extreme days. 
+\end{itemize}
+
+\subsubsection{Uniivariate Model Plots :}
+
+   \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{gru_model.png}
+    \caption{Univariate GRU Predicted vs Actual}
+    \label{fig:gru_univariate}
+\end{figure}
+   \hfill
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{LSTM_model.png}
+    \caption{Univariate LSTM Predicted vs Actual}
+    \label{fig:lstm_univariate}
+\end{figure}
+\begin{itemize}
+    \item Most points lie close to the diagonal line, which means LSTM predicts very accurately. It captures both daily changes and longer patterns. 
+
+\item The GRU points are also near the diagonal, showing good performance. However, the scatter is slightly wider than LSTM, meaning GRU is a bit less accurate for higher cost values. 
+\end{itemize}
+
+
+     \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{fnn_model.png}
+    \caption{Univariate FNN Predicted vs Actual}
+    \label{fig:fnn_univariate}
+\end{figure}
+   \hfill
+     \begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{xgboost_model.png}
+    \caption{Univariate XGBoost Predicted vs Actual}
+    \label{fig:xgboost_univariate}
+
+   \label{fig:multivariate_scatter}
+\end{figure}
+
+\begin{itemize}
+    \item The FNN model follows the general pattern but the points are more spread out from the diagonal line. This means the predictions are decent but not very precise, because FNN cannot fully capture day-to-day changes in production cost. 
+
+\item XGBoost predicts fairly well, and many points are close to the diagonal line. However, there is still some scatter during sudden changes in cost, showing that the model struggles a bit with sharp spikes or drops. 
+
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{LR_model.png}
+    \caption{Univariate Linear Regression Predicted vs Actual}
+    \label{Figure 13: Linear Regression}
+\end{figure}
+
+\begin{itemize}
+    \item The Linear Regression model captures the general trend, but the points are more spread out from the diagonal line. This means its predictions are less accurate, especially for higher cost values, because a simple linear model cannot learn complex or non-linear patterns in the data. 
+\end{itemize}
+
+\subsubsection{Forecasting Example}
+
+\begin{figure}[H]
+    \centering
+    \caption{Univariate LSTM Train/Test/Forecast Example}
+    \vspace{0.5em}
+    \includegraphics[width=0.75\textwidth]{forecast.png} 
+    \label{fig:forecast_example}
+\end{figure}
+
+The example plot demonstrates:
+
+\begin{itemize}
+    \item Accurate tracking of real cost fluctuations during the test phase
+    \item Stable multi-step forecasts beyond the test horizon 
+    \item Smooth adaptation to the underlying temporal trend
+\end{itemize}
+
+This validates the univariate LSTM as the most reliable model for real-world deployment.
+
+
+
+\section{Discussion}
+This effort aimed at finding out how various machine learning and deep learning models could predict daily school-level production costs using the historical FCPS meal data. In the process, several challenges arose, especially on the complexity and irregularity of production-cost patterns. Unlike datasets used in traditional forecasting studies, for instance, electricity demand or retail product sales, school meal data is highly noisy and inconsistent between schools, as it is often disrupted due to irregular attendance, changes in the menu, and other operational anomalies. These characteristics make it difficult for simpler models to learn stable temporal relationships. 
+
+ 
+
+From all models explored, the univariate LSTM was best at overcoming these difficulties. In contrast with related work, which relies on either linear extrapolation or static rule-based approaches, the advantages of using the LSTM were clear because it captured nonlinear dynamics nicely, adapted to cost fluctuations over time, and learned temporal patterns that would not be easily modeled by any classical statistical model. Furthermore, opposed to multivariate models explored in other domains, a univariate approach yielded better results in this project since it avoided noise created by inconsistent operational variables and focused only on clean, reliable cost history. 
+
+ 
+
+However, some areas had the alternative solutions outperforming or offering benefits. For example, XGBoost provided stable results with much lower training costs and faster execution times, serving as a very strong baseline for those schools that had limited computational resources. Similarly, GRU networks, even though slightly less accurate compared with LSTM, trained much faster and were not prone to overfitting either; thus, this could be a practical alternative in cases in which quicker model updates were needed. 
+
+ 
+
+Despite the robustness of the LSTM, there are limitations to this approach. First, being univariate, it doesn't take into consideration external drivers such as patterns of student attendance, holiday schedules, weather, or even menu-specific cost changes. Second, its performance may be degraded in very long-range predictions; it becomes increasingly sensitive to accumulated error in the model output. These could include integrating external covariates into a multivariate LSTM or transformer-based architecture, seasonal decomposition, and/or accounting for calendar effects that would better adapt to more irregular school periods. 
+
+ 
+
+Considering the overall experience from this project, several further approaches can be explored. The attention-based models, such as Transformers and Temporal Fusion Transformers, may better grasp long-range dependencies than the recurrent architecture. Probabilistic forecasting methods include DeepAR or Gaussian Process Regression, which allow quantification of uncertainty and provide confidence intervals for cost estimates. Finally, clustering schools by behavioral patterns before forecasting could reduce noise and improve stability across diverse FCPS schools. 
+
+It became evident from the experiments that, although univariate LSTM had the best overall performance in short-term forecasting, the key takeaways from this work also offer the possibility of improving the performance and practical utility of future school meal forecasting systems by incorporating deep learning with contextual features and state-of-the-art sequence models. 
+
+
+\section{Conclusion}
+Various machine learning and deep learning models were evaluated in this paper on the forecast of daily production cost in school meal programs. Among the different methods compared, such as Linear Regression, XGBoost, Feedforward Neural Networks, GRU, and LSTM, the univariate LSTM model yielded the best results. It has provided the lowest prediction error and highest stability in all cases, proving a better capability to capture nonlinear and time-dependent patterns of production cost data. 
+
+ 
+
+The model developed in this work has yielded accurate short-term forecasts of costs, which would enable more effective budgeting, procurement planning, and reduction of waste in school nutrition programs. The LSTM model effectively learned cost dynamics even in the presence of irregular participation patterns and operational variability, offering a practical solution for daily forecasting needs. 
+
+\paragraph{Overview of Key Results: }
+\begin{itemize}
+    \item Univariate LSTM provided the highest accuracy with strong R² scores with the lowest RMSE values. 
+
+\item Traditional models captured general patterns but could not model complex temporal behavior. 
+
+\item The multivariate models did not outperform the univariate LSTM; thus, the univariate approach is the most reliable and efficient. 
+
+\item The forecasting system successfully generated realistic short-horizon predictions for FCPS schools. 
+\end{itemize}
+
+\paragraph{Remaining Gaps:}
+\begin{itemize}
+    \item Limited historical data restricts long-term seasonal pattern modeling. 
+
+\item It does not consider exterior factors like attendance, menu variations, and ingredient pricing. 
+
+\item Operational disruptions, for example holidays, events, and supply shortages, were not modeled. 
+\end{itemize}
+
+\paragraph{Future Extensions:}
+\begin{itemize}
+    \item With multivariate features including attendance, menu categories, and pricing trends. 
+
+\item Exploring longer-horizon forecasting using state-of-the-art architectures like Seq2Seq, Transformers, or N-BEATS. 
+
+\item Transfer learning to enable improved predictions for schools where less data is available. 
+
+\item Integrate the forecasting system into real-time school nutrition management platforms for use in everyday operations. 
+\end{itemize}
+
+\section*{References}
+\begin{enumerate}[itemsep=0pt, parsep=0pt, topsep=2pt]
+
+    \item Brownlee, J. (2020). \textit{Deep Learning for Time Series Forecasting: Predict the Future with MLPs, CNNs and LSTMs in Python}. Machine Learning Mastery.
+    \item Chollet, F. (2018). \textit{Deep Learning with Python}. Manning Publications.
+    \item Hochreiter, S., \& Schmidhuber, J. (1997). Long short-term memory. \textit{Neural Computation}, 9(8), 1735--1780.
+    \item Yu, H. F., Huang, F. L., \& Lin, C. J. (2011). Dual coordinate descent methods for logistic regression and maximum entropy models. \textit{Machine Learning}, 85(1--2), 41--75.
+    \item Scikit-learn developers. (2024). \textit{Scikit-learn: Machine Learning in Python}. Retrieved from \url{https://scikit-learn.org/}
+    \item PyTorch contributors. (2024). \textit{PyTorch Documentation}. Retrieved from \url{https://pytorch.org/}
+    \item Kaggle. (2024). \textit{Time Series Forecasting Tutorials}. Retrieved from \url{https://www.kaggle.com/}
+    \item Kong, W., Dong, Z. Y., Jia, Y., Hill, D. J., Xu, Y., \& Zhang, Y. (2019). Short-term residential load forecasting based on LSTM recurrent neural network. \textit{IEEE Transactions on Smart Grid}, 10(1), 841--851.
+    \item Lai, G., Chang, W. C., Yang, Y., \& Liu, H. (2018). Modeling long- and short-term temporal patterns with deep neural networks. In \textit{Proceedings of the 41st International ACM SIGIR Conference} (pp.~95--104).
+    \item Mulhollem, J. (2021). U.S. school cafeterias waste more food than those in other developed countries. \textit{Penn State University News}. Retrieved from \href{url}{https://www.psu.edu/news/}
+    \item Ralston, K., Treen, K., Coleman-Jensen, A., \& Guthrie, J. (2017). \textit{National School Lunch Program: Trends and Factors Affecting Student Participation}. USDA Economic Research Service.
+    \item Smith, S. L., \& Cunningham-Sabo, L. (2014). Food choice, plate waste, and nutrient intake of elementary- and middle-school students in the U.S. National School Lunch Program. \textit{Public Health Nutrition}, 17(6), 1255--1263.
+
+\end{enumerate}
+
+\end{document}
